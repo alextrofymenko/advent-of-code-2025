@@ -16,8 +16,22 @@
     (or (odd? (count str-id))
         (apply not= (split-at (/ (count str-id) 2) str-id)))))
 
-(defn part-1 [input]
+(defn- id-actually-valid? [id]
+  (let [str-id (str id)]
+    (loop [n (Math/floor (/ (count str-id) 2))]
+      (cond
+        (zero? n) true
+        (apply = (partition-all n str-id)) false
+        :else (recur (dec n))))))
+
+(defn- sum-invalid-ids [input valid-fn]
   (->> (str/split input #",")
        (mapcat expand-range)
-       (remove id-valid?)
+       (remove valid-fn)
        (apply +)))
+
+(defn part-1 [input]
+  (sum-invalid-ids input id-valid?))
+
+(defn part-2 [input]
+  (sum-invalid-ids input id-actually-valid?))
