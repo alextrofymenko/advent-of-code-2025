@@ -26,11 +26,22 @@
         :when (not= 0 xd yd)]
     [(+ x xd) (+ y yd)]))
 
+(defn- remove-rolls [grid]
+  (reduce-kv
+   (fn [[n res] [x y] p]
+     (let [ns (keep grid (neighbours x y))
+           can-remove? (and (= \@ (get grid [x y]))
+                            (< (count (filter #(= \@ %) ns)) 4))]
+       [(cond-> n can-remove? inc)
+        (assoc res [x y] (if can-remove? \x p))]))
+   [0 {}] grid))
+
 (defn part-1 [input]
-  (let [g (grid input)]
-    (count
-     (for [[[x y] _] g
-           :when (= \@ (get g [x y]))
-           :let [ns (keep g (neighbours x y))]
-           :when (< (count (filter #(= \@ %) ns)) 4)]
-       [x y]))))
+  (first (remove-rolls (grid input))))
+
+(defn part-2 [input]
+  (loop [g (grid input) n 0]
+    (let [[n' g'] (remove-rolls g)]
+      (if (pos? n')
+        (recur g' (+ n n'))
+        n))))
