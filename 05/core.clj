@@ -30,3 +30,31 @@
        (cond-> sum
          (some #(and id (>= id (:min %)) (<= id (:max %))) fresh-ranges) inc))
      0 available)))
+
+(defn- ranges-overlap?
+  "Case 1                 Case 2
+   range-1: |-----|       range-1:    |-----|
+   range-2:    |-----|    range-2: |-----|
+
+   Case 3                 Case 4
+   range-1: |-------|     range-1:   |---|
+   range-2:   |---|       range-2: |-------|"
+  [range-1 range-2]
+  (or (<= (:min range-1) (:min range-2) (:max range-1))                ;; Case 1
+      (<= (:min range-2) (:min range-1) (:max range-2))                ;; Case 2
+      (<= (:min range-1) (:min range-2) (:max range-2) (:max range-1)) ;; Case 3
+      (<= (:min range-2) (:min range-1) (:max range-1) (:max range-2)) ;; Case 4
+      ))
+
+(defn- expanded-ranges [db]
+  (reduce
+   (fn [expanded-ranges range-1]
+     (if-let [overlapping-ranges (seq (filter #(ranges-overlap? range-1 (second %)) expanded-ranges))]
+       (-> (apply dissoc expanded-ranges (map first overlapping-ranges))
+           (assoc (random-uuid) {:min (apply min (:min range-1) (map (comp :min second) overlapping-ranges))
+                                 :max (apply max (:max range-1) (map (comp :max second) overlapping-ranges))}))
+       (assoc expanded-ranges (random-uuid) range-1)))
+   {} (:fresh-ranges db)))
+
+(defn part-2 [input]
+  (reduce-kv #(+ %1 (- (:max %3) (:min %3)) 1) 0 (expanded-ranges (read-db input))))
