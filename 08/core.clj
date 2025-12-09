@@ -45,12 +45,15 @@
   "I misinterpreted the blurb and so it took me way longer than it should have -
    'After making the ten shortest connections' did not mean 'They used ten cables',
    it just means 'they examined ten shortest connections'. I wish that part was clearer"
-  [coord-pairs {:keys [stop-after-examnining-n-pairs]}]
+  [coord-pairs {:keys [stop-after-examnining-n-pairs n-junction-boxes]}]
   (loop [number-of-attemps 0
          [coords & coord-pairs] coord-pairs
+         last-examined-pair nil
          circuits {}]
-    (if (= number-of-attemps stop-after-examnining-n-pairs)
-      circuits
+    (if (or (= number-of-attemps stop-after-examnining-n-pairs)
+            (and (= (count circuits) 1)
+                 (= (count (first (vals circuits))) n-junction-boxes)))
+      {:circuits circuits :last-examined-pair last-examined-pair}
       (let [[circuit-id-1 circuit-id-2]
             (for [c coords
                   group-id (reduce-kv #(cond-> %1 (contains? %3 c) (conj %2)) #{} circuits)]
@@ -58,6 +61,7 @@
         (recur
          (inc number-of-attemps)
          coord-pairs
+         coords
          (cond
            (and circuit-id-1 (= circuit-id-1 circuit-id-2))
            circuits
@@ -79,3 +83,11 @@
 (defn- part-1 [input n]
   (let [sorted-pairs (sort-pairs-by-distances (map coords input))]
     (estimate-size (make-circuits sorted-pairs {:stop-after-examnining-n-pairs n}))))
+
+(defn- calculate-extension-length [{:keys [last-examined-pair]}]
+  (* (ffirst last-examined-pair)
+     (first (last last-examined-pair))))
+
+(defn- part-2 [input]
+  (let [sorted-pairs (sort-pairs-by-distances (map coords input))]
+    (calculate-extension-length (make-circuits sorted-pairs {:n-junction-boxes (count input)}))))
